@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Exam Terminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #300a24;
+      color: #fff;
+      font-family: 'Fira Mono', 'Consolas', 'Monaco', monospace;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .terminal {
+      background: #2d073a;
+      border-radius: 8px;
+      box-shadow: 0 0 24px #0f0a, 0 0 4px #a259f7;
+      margin-top: 40px;
+      padding: 32px 24px 24px 24px;
+      width: 90vw;
+      max-width: 700px;
+      min-height: 60vh;
+      position: relative;
+      margin-left: 70px;
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+      display: inline-block;
+    }
+    .dot.red { background: #ff5555; }
+    .dot.yellow { background: #f1fa8c; }
+    .dot.green { background: #50fa7b; }
+    .terminal-title {
+      margin-left: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      color: #a259f7;
+      font-size: 1.1em;
+    }
+    .question-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .question-item {
+      margin-bottom: 22px;
+      cursor: pointer;
+      border-radius: 6px;
+      position: relative;
+      transition: background 0.2s;
+      background: #3c0d4a;
+      box-shadow: 0 2px 8px #0002;
+      padding: 0;
+      overflow: hidden;
+    }
+    .question-item:hover {
+      background: #4e1760;
+    }
+    .code-block {
+      display: flex;
+      font-size: 1.04em;
+      font-family: inherit;
+      color: #fff;
+    }
+    .line-numbers {
+      background: #2d073a;
+      color: #a259f7;
+      padding: 12px 10px 12px 16px;
+      text-align: right;
+      user-select: none;
+      min-width: 32px;
+      font-size: 1em;
+      border-right: 2px solid #a259f7;
+    }
+    .code-content {
+      padding: 12px 16px;
+      white-space: pre-wrap;
+      flex: 1;
+      color: #fff;
+    }
+    .code-keyword { color: #f1fa8c; }
+    .code-type { color: #50fa7b; }
+    .code-string { color: #f78c6c; }
+    .code-func { color: #82aaff; }
+    .copied-msg {
+      position: absolute;
+      right: 18px;
+      top: 10px;
+      color: #50fa7b;
+      font-size: 0.98em;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      background: #222;
+      padding: 2px 10px;
+      border-radius: 4px;
+    }
+    .question-item.copied .copied-msg {
+      opacity: 1;
+    }
+    /* Sidebar vertically centered */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 54px;
+      height: 100vh;
+      background: #1a0424;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      box-shadow: 2px 0 8px #0002;
+    }
+    .sidebar-icon {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6em;
+      color: #a259f7;
+      background: #2d073a;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .sidebar-icon:hover {
+      background: #a259f7;
+      color: #fff;
+    }
+    /* Fullscreen button fixed in browser corner */
+    .fullscreen-btn {
+      position: fixed;
+      top: 18px;
+      right: 32px;
+      background: #a259f7;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 1.1em;
+      padding: 4px 10px;
+      cursor: pointer;
+      z-index: 200;
+      transition: background 0.2s;
+    }
+    .fullscreen-btn:hover {
+      background: #fff;
+      color: #a259f7;
+    }
+    .terminal.fullscreen {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      z-index: 999;
+      box-shadow: none !important;
+      padding-top: 40px !important;
+    }
+    @media (max-width: 700px) {
+      .sidebar { width: 40px; }
+      .terminal { margin-left: 48px; }
+      .fullscreen-btn { right: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-icon" title="Home">🏠</div>
+    <div class="sidebar-icon" title="Code">💻</div>
+    <div class="sidebar-icon" title="Docs">📄</div>
+    <div class="sidebar-icon" title="Settings">⚙️</div>
+  </div>
+  <div class="terminal" id="terminalBox">
+    <button class="fullscreen-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+    <div class="terminal-header">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+      <span class="terminal-title">linuxtechi@ubuntu-22-04:~</span>
+    </div>
+    <ul class="question-list" id="questionList">
+      <!-- Questions will be injected here -->
+    </ul>
+  </div>
+  <script>
+    // All 11 AOP practical questions and their C code answers
+    const qa = [
+      { q: "Selection Sort", a: `#include <stdio.h>
+int main() {
+    int a[] = {5, 3, 6, 2, 10}, n = 5, i, j, min, temp;
+    for(i = 0; i < n-1; i++) {
+        min = i;
+        for(j = i+1; j < n; j++)
+            if(a[j] < a[min]) min = j;
+        temp = a[i]; a[i] = a[min]; a[min] = temp;
+    }
+    for(i = 0; i < n; i++) printf("%d ", a[i]);
+    return 0;
+}` },
+      { q: "Insertion Sort", a: `#include <stdio.h>
+int main() {
+    int a[] = {5, 3, 6, 2, 10}, n = 5, i, key, j;
+    for(i = 1; i < n; i++) {
+        key = a[i];
+        j = i - 1;
+        while(j >= 0 && a[j] > key)
+            a[j + 1] = a[j--];
+        a[j + 1] = key;
+    }
+    for(i = 0; i < n; i++) printf("%d ", a[i]);
+    return 0;
+}` },
+      { q: "Merge Sort (Divide and Conquer)", a: `#include <stdio.h>
+void merge(int a[], int l, int m, int r) {
+    int i=l, j=m+1, k=0, b[r-l+1];
+    while(i<=m && j<=r) b[k++] = (a[i]<a[j]) ? a[i++] : a[j++];
+    while(i<=m) b[k++] = a[i++];
+    while(j<=r) b[k++] = a[j++];
+    for(i=l, k=0; i<=r; i++) a[i] = b[k++];
+}
+void mergeSort(int a[], int l, int r) {
+    if(l<r) {
+        int m = (l+r)/2;
+        mergeSort(a, l, m);
+        mergeSort(a, m+1, r);
+        merge(a, l, m, r);
+    }
+}
+int main() {
+    int a[] = {5, 3, 6, 2, 10}, n = 5;
+    mergeSort(a, 0, n-1);
+    for(int i = 0; i < n; i++) printf("%d ", a[i]);
+    return 0;
+}` },
+      { q: "Binary Search (Recursive)", a: `#include <stdio.h>
+int binarySearch(int a[], int l, int r, int x) {
+    if(l <= r) {
+        int m = (l + r) / 2;
+        if(a[m] == x) return m;
+        if(a[m] > x) return binarySearch(a, l, m - 1, x);
+        return binarySearch(a, m + 1, r, x);
+    }
+    return -1;
+}
+int main() {
+    int a[] = {2, 4, 6, 8, 10}, n = 5, x = 8;
+    int res = binarySearch(a, 0, n - 1, x);
+    if(res != -1) printf("Found at index %d\\n", res);
+    else printf("Not found\\n");
+    return 0;
+}` },
+      { q: "Dynamic Programming (Fibonacci)", a: `#include <stdio.h>
+int main() {
+    int n = 10, dp[n+1];
+    dp[0] = 0; dp[1] = 1;
+    for(int i = 2; i <= n; i++)
+        dp[i] = dp[i-1] + dp[i-2];
+    printf("Fibonacci(%d) = %d\\n", n, dp[n]);
+    return 0;
+}` },
+      { q: "N-Queen Problem Using Backtracking (4-Queens)", a: `#include <stdio.h>
+#define N 4
+int board[N][N];
+int isSafe(int row, int col) {
+    for(int i = 0; i < row; i++)
+        if(board[i][col]) return 0;
+    for(int i=row, j=col; i>=0 && j>=0; i--, j--)
+        if(board[i][j]) return 0;
+    for(int i=row, j=col; i>=0 && j<N; i--, j++)
+        if(board[i][j]) return 0;
+    return 1;
+}
+int solveNQ(int row) {
+    if(row == N) return 1;
+    for(int col = 0; col < N; col++) {
+        if(isSafe(row, col)) {
+            board[row][col] = 1;
+            if(solveNQ(row + 1)) return 1;
+            board[row][col] = 0;
+        }
+    }
+    return 0;
+}
+int main() {
+    if(solveNQ(0)) {
+        for(int i = 0; i < N; i++, printf("\\n"))
+            for(int j = 0; j < N; j++) printf("%d ", board[i][j]);
+    } else printf("No solution");
+    return 0;
+}` },
+      { q: "Graph Coloring Using Backtracking", a: `#include <stdio.h>
+#define V 4
+int graph[V][V] = {{0,1,1,1},{1,0,1,0},{1,1,0,1},{1,0,1,0}};
+int color[V];
+int isSafe(int v, int c) {
+    for(int i = 0; i < V; i++)
+        if(graph[v][i] && color[i] == c) return 0;
+    return 1;
+}
+int graphColoring(int v, int m) {
+    if(v == V) return 1;
+    for(int c = 1; c <= m; c++) {
+        if(isSafe(v, c)) {
+            color[v] = c;
+            if(graphColoring(v + 1, m)) return 1;
+            color[v] = 0;
+        }
+    }
+    return 0;
+}
+int main() {
+    int m = 3;
+    if(graphColoring(0, m)) {
+        printf("Color assignment:\\n");
+        for(int i = 0; i < V; i++) printf("%d ", color[i]);
+    } else printf("No solution");
+    return 0;
+}` },
+      { q: "Subset Sum Problem Using Backtracking", a: `#include <stdio.h>
+int subsetSum(int a[], int n, int sum) {
+    if(sum == 0) return 1;
+    if(n == 0) return 0;
+    return subsetSum(a, n - 1, sum) || subsetSum(a, n - 1, sum - a[n - 1]);
+}
+int main() {
+    int a[] = {3, 34, 4, 12, 5, 2}, n = 6, sum = 9;
+    if(subsetSum(a, n, sum)) printf("Subset with sum %d found", sum);
+    else printf("No subset found");
+    return 0;
+}` },
+      { q: "Naive String Matching Algorithm", a: `#include <stdio.h>
+#include <string.h>
+int main() {
+    char text[] = "AABAACAADAABAABA";
+    char pat[] = "AABA";
+    int n = strlen(text), m = strlen(pat);
+    for(int i = 0; i <= n - m; i++) {
+        int j;
+        for(j = 0; j < m; j++)
+            if(text[i + j] != pat[j]) break;
+        if(j == m) printf("Pattern found at index %d\\n", i);
+    }
+    return 0;
+}` },
+      { q: "Rabin-Karp String Matching Algorithm", a: `#include <stdio.h>
+#include <string.h>
+#define d 256
+int main() {
+    char text[] = "GEEKS FOR GEEKS", pat[] = "GEEK";
+    int q = 101;
+    int n = strlen(text), m = strlen(pat);
+    int i, j, p = 0, t = 0, h = 1;
+    for(i = 0; i < m - 1; i++) h = (h * d) % q;
+    for(i = 0; i < m; i++) {
+        p = (d * p + pat[i]) % q;
+        t = (d * t + text[i]) % q;
+    }
+    for(i = 0; i <= n - m; i++) {
+        if(p == t) {
+            for(j = 0; j < m; j++)
+                if(text[i + j] != pat[j]) break;
+            if(j == m) printf("Pattern found at index %d\\n", i);
+        }
+        if(i < n - m) {
+            t = (d * (t - text[i] * h) + text[i + m]) % q;
+            if(t < 0) t = (t + q);
+        }
+    }
+    return 0;
+}` },
+      { q: "Max Clique Problem Using Backtracking", a: `#include <stdio.h>
+#define V 5
+int graph[V][V] = {
+    {0,1,1,0,0},
+    {1,0,1,1,0},
+    {1,1,0,1,1},
+    {0,1,1,0,1},
+    {0,0,1,1,0}
+};
+int max = 0;
+void cliqueUtil(int s[], int k) {
+    for(int i = s[k-1]+1; i < V; i++) {
+        int valid = 1;
+        for(int j = 0; j < k; j++)
+            if(!graph[i][s[j]]) { valid = 0; break; }
+        if(valid) {
+            s[k] = i;
+            if(k+1 > max) max = k+1;
+            cliqueUtil(s, k+1);
+        }
+    }
+}
+int main() {
+    int s[V];
+    for(int i = 0; i < V; i++) {
+        s[0] = i;
+        cliqueUtil(s, 1);
+    }
+    printf("Maximum Clique Size: %d\\n", max);
+    return 0;
+}` }
+    ];
+
+    // Fullscreen button logic (browser fullscreen for whole page)
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    let isFullscreen = false;
+    fullscreenBtn.addEventListener('click', () => {
+      const elem = document.documentElement; // fullscreen the whole page
+      if (!isFullscreen) {
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { // Safari
+          elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { // IE11
+          elem.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { // Safari
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { // IE11
+          document.msExitFullscreen();
+        }
+      }
+    });
+
+    // Listen for fullscreen change to update button icon
+    document.addEventListener('fullscreenchange', () => {
+      isFullscreen = !!document.fullscreenElement;
+      fullscreenBtn.textContent = isFullscreen ? '🗗' : '⛶';
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+      isFullscreen = !!document.webkitFullscreenElement;
+      fullscreenBtn.textContent = isFullscreen ? '🗗' : '⛶';
+    });
+    document.addEventListener('msfullscreenchange', () => {
+      isFullscreen = !!document.msFullscreenElement;
+      fullscreenBtn.textContent = isFullscreen ? '🗗' : '⛶';
+    });
+
+    // Render questions as code blocks
+    const questionList = document.getElementById('questionList');
+    qa.forEach((item, idx) => {
+      // Prepare code lines for line numbers
+      const codeLines = item.q.split('\n');
+      const lineCount = codeLines.length;
+      let lineNumbers = '';
+      for (let i = 1; i <= lineCount; i++) lineNumbers += i + '\n';
+
+      // Build code block for question
+      const li = document.createElement('li');
+      li.className = 'question-item';
+      li.innerHTML = `
+        <div class="code-block">
+          <div class="line-numbers">${lineNumbers}</div>
+          <div class="code-content">${item.q}</div>
+        </div>
+        <span class="copied-msg">Copied!</span>
+      `;
+      li.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(item.a);
+          li.classList.add('copied');
+          setTimeout(() => li.classList.remove('copied'), 1200);
+        } catch (e) {
+          alert('Copy failed. Try again.');
+        }
+      });
+      questionList.appendChild(li);
+    });
+  </script>
+</body>
+</html>
